@@ -1,0 +1,400 @@
+/* ==========================================================================
+   style.css — Gesture Photo Booth
+   Visual language: dark glassmorphism, violet → cyan accent gradient.
+   Chosen because it reads as "camera app at night" (viewfinder glow,
+   neon corner brackets) rather than a generic light dashboard, and it's
+   the richer of the two source designs this was merged from.
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --accent: #a78bfa;
+  --accent2: #38bdf8;
+  --bg: #0a0a12;
+  --text: #f1f5f9;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Stage: video + canvas ────────────────────────────────────────────── */
+#stage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#video {
+  display: none;
+}
+
+/* Canvas is drawn already-mirrored (see 04-geometry.js) — no CSS
+   transform here. max-width/max-height lets it scale responsively
+   while the browser preserves its intrinsic aspect ratio automatically. */
+#canvas {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  background: #000;
+  transition: filter 0.1s ease;
+  /* smooths the live filter-preview swap */
+}
+
+/* ── HUD layer ─────────────────────────────────────────────────────────── */
+#hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#stateBadge {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 10, 18, 0.72);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  border-radius: 2rem;
+  padding: 0.3rem 1.1rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+}
+
+#toast {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 10, 18, 0.82);
+  border: 1px solid rgba(167, 139, 250, 0.22);
+  border-radius: 1.5rem;
+  padding: 0.6rem 1.6rem;
+  font-size: 0.9rem;
+  color: rgba(241, 245, 249, 0.85);
+  backdrop-filter: blur(12px);
+  text-align: center;
+  max-width: 90vw;
+  line-height: 1.45;
+  transition: opacity 0.3s;
+}
+
+/* ── Photo-progress dots ──────────────────────────────────────────────── */
+#photoCounter {
+  position: absolute;
+  top: 1rem;
+  right: 1.2rem;
+  display: flex;
+  gap: 0.45rem;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.photo-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: transparent;
+  transition: background 0.25s;
+}
+
+.photo-dot.filled {
+  background: var(--accent);
+}
+
+/* ── Countdown ────────────────────────────────────────────────────────── */
+#countdownOverlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 9rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 40px rgba(167, 139, 250, 0.9), 0 0 100px rgba(167, 139, 250, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+/* ── Filter menu ──────────────────────────────────────────────────────── */
+/* 2-column grid: with 17 filters, a single vertical list ran off-screen
+   and needed scrolling. Grid on the container itself (rather than
+   restructuring the JS-built markup) lets the <h3> header span both
+   columns while every .filter-item after it auto-flows into 2 columns. */
+#filterMenu {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  transform: translate(-100%, -50%);
+
+  background: rgba(8, 8, 20, 0.9);
+  border: 1px solid rgba(167, 139, 250, 0.28);
+  border-radius: 1.5rem;
+  padding: 1.4rem 1.6rem;
+  backdrop-filter: blur(24px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  min-width: 340px;
+  max-width: 92vw;
+  max-height: 82vh;
+  overflow-y: auto;
+  text-align: center;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  column-gap: 0.7rem;
+  row-gap: 0.15rem;
+  align-content: start;
+}
+
+#filterMenu h3 {
+  grid-column: 1 / -1;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.9rem;
+}
+
+.filter-item {
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.7rem;
+  margin: 0.25rem 0;
+  font-size: 0.88rem;
+  border: 1px solid transparent;
+  color: rgba(241, 245, 249, 0.65);
+  transition: all 0.12s;
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filter-item.hovered {
+  background: rgba(167, 139, 250, 0.18);
+  border-color: rgba(167, 139, 250, 0.45);
+  color: #fff;
+}
+
+.filter-item.pinch-progress::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 8px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 1px;
+  width: var(--prog, 0%);
+  transition: width 0.05s;
+}
+
+/* ── Pinch cursor ─────────────────────────────────────────────────────── */
+#pinchCursor {
+  position: fixed;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid rgba(56, 189, 248, 0.85);
+  background: rgba(56, 189, 248, 0.12);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: width 0.08s, height 0.08s, background 0.08s, border-color 0.08s;
+  display: none;
+  z-index: 15;
+}
+
+#pinchCursor.pinching {
+  width: 16px;
+  height: 16px;
+  background: rgba(56, 189, 248, 0.45);
+  border-color: rgba(56, 189, 248, 1);
+}
+
+/* ── Flash ────────────────────────────────────────────────────────────── */
+#flashOverlay {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+  transition: opacity 0.04s;
+}
+
+/* ── Hand-lost bar ────────────────────────────────────────────────────── */
+#handLostBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  width: 0%;
+  display: none;
+  transition: width 0.08s linear;
+}
+
+/* ── Loading / error screen ───────────────────────────────────────────── */
+#loadingScreen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  z-index: 50;
+  background: var(--bg);
+}
+
+.spinner {
+  width: 42px;
+  height: 42px;
+  border: 3px solid rgba(167, 139, 250, 0.18);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+#loadingText {
+  color: rgba(241, 245, 249, 0.5);
+  font-size: 0.9rem;
+}
+
+#errorMsg {
+  color: #f87171;
+  font-size: 0.85rem;
+  max-width: 340px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+#retryBtn {
+  display: none;
+  pointer-events: auto;
+  margin-top: 0.4rem;
+  padding: 0.75rem 1.8rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #0a0a12;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none;
+  border-radius: 2rem;
+  cursor: pointer;
+}
+
+#retryBtn:hover {
+  opacity: 0.88;
+}
+
+/* ── Result overlay ───────────────────────────────────────────────────── */
+#resultOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 8, 18, 0.93);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1.2rem;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+#resultOverlay h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+#stripPreview {
+  max-height: 56vh;
+  max-width: 80vw;
+  border-radius: 0.75rem;
+  box-shadow: 0 0 60px rgba(167, 139, 250, 0.28);
+  object-fit: contain;
+}
+
+.result-btns {
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.result-btn {
+  padding: 0.65rem 1.8rem;
+  border-radius: 2rem;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.result-btn.primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #0a0a12;
+}
+
+.result-btn.secondary {
+  background: rgba(241, 245, 249, 0.07);
+  border: 1px solid rgba(241, 245, 249, 0.18);
+  color: var(--text);
+}
+
+.result-btn:hover {
+  opacity: 0.84;
+  transform: translateY(-1px);
+}
+
+#privacyNote {
+  font-size: 0.72rem;
+  color: rgba(241, 245, 249, 0.35);
+  text-align: center;
+  max-width: 320px;
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

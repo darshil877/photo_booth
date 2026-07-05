@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gesture Photo Booth — WebCraft Studio</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <div id="stage">
+    <video id="video" playsinline></video>
+    <canvas id="canvas"></canvas>
+
+    <div id="hud">
+      <div id="stateBadge">Loading</div>
+      <div id="photoCounter"></div>
+      <div id="countdownOverlay"></div>
+      <div id="filterMenu">
+        <h3>☞ Pinch to Select</h3>
+      </div>
+      <div id="pinchCursor"></div>
+      <div id="toast"></div>
+      <div id="handLostBar"></div>
+    </div>
+
+    <div id="flashOverlay"></div>
+
+    <div id="loadingScreen">
+      <div class="spinner"></div>
+      <div id="loadingText">Starting camera &amp; hand tracking…</div>
+      <div id="errorMsg"></div>
+      <button id="retryBtn">Enable Camera</button>
+    </div>
+
+    <div id="resultOverlay">
+      <h2>✨ Your Photo Strip</h2>
+      <img id="stripPreview" src="" alt="Your composited photo strip" />
+      <div class="result-btns">
+        <button class="result-btn primary" id="downloadBtn">⬇ Download</button>
+        <button class="result-btn secondary" id="shareBtn" style="display:none">↗ Share</button>
+        <button class="result-btn secondary" id="newPhotoBtn">📷 New Photo</button>
+      </div>
+      <p id="privacyNote">☁️ A copy of this photo is also saved to our private gallery to help us improve the app.</p>
+    </div>
+  </div>
+
+  <!-- MediaPipe Hands via CDN. drawing_utils is optional (only used for the
+       official HAND_CONNECTIONS constant); 06-render.js falls back to its
+       own connection list if it isn't available for any reason. -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+  <script src="js/01-config.js" defer></script>
+  <script src="js/02-store.js" defer></script>
+  <script src="js/03-dom.js" defer></script>
+  <script src="js/04-geometry.js" defer></script>
+  <script src="js/05-gestures.js" defer></script>
+  <script src="js/06-render.js" defer></script>
+  <script src="js/07-audio.js" defer></script>
+  <script src="js/08-filters.js" defer></script>
+  <script src="js/09-compositor.js" defer></script>
+  <script src="js/10-capture.js" defer></script>
+  <script src="js/11-ui.js" defer></script>
+  <script src="js/12-state-machine.js" defer></script>
+  <script src="js/13-camera.js" defer></script>
+  <script src="js/14-supabase-client.js" defer></script>
+  <script src="js/15-main.js" defer></script>
+
+</body>
+
+</html>
